@@ -1,0 +1,46 @@
+server:
+  port: ${PORT:8083}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/common,classpath:db/migration
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASSWORD}
+    virtual-host: pedidos
+    publisher-confirm-type: simple
+    publisher-returns: true
+
+app:
+  payment:
+    # Pagamentos até este valor são aprovados; acima, recusados (simula a análise antifraude).
+    approval-limit: 5000.00
+  messaging:
+    exchange: pedidos.events
+    self: PAYMENT
+    private-key: ${PAYMENT_PRIVATE_KEY}
+    public-keys:
+      inventory: ${INVENTORY_PUBLIC_KEY}
+    max-message-age: 7d
+    relay-interval: 500 # milissegundos
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
