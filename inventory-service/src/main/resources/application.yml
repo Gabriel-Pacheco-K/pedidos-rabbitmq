@@ -1,0 +1,47 @@
+server:
+  port: ${PORT:8082}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/common,classpath:db/migration
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASSWORD}
+    virtual-host: pedidos
+    publisher-confirm-type: simple
+    publisher-returns: true
+
+app:
+  inventory:
+    # Consumidores em paralelo: as travas no banco garantem que não se vende o que não há.
+    consumers: 4
+  messaging:
+    exchange: pedidos.events
+    self: INVENTORY
+    private-key: ${INVENTORY_PRIVATE_KEY}
+    public-keys:
+      order: ${ORDER_PUBLIC_KEY}
+      payment: ${PAYMENT_PUBLIC_KEY}
+    max-message-age: 7d
+    relay-interval: 500 # milissegundos
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
