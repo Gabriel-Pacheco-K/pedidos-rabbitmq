@@ -1,0 +1,257 @@
+{
+  "_comment": "SOMENTE DESENVOLVIMENTO. As senhas sao de exemplo (ver README). Em producao, gere novas senhas e nao versione este arquivo.",
+  "rabbit_version": "3.13.0",
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "FXMaZUAAAH6oqw58JBiynK8/2cUECuCmbJuPEeNHzuPVOQTh",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [
+        "administrator"
+      ]
+    },
+    {
+      "name": "order-svc",
+      "password_hash": "MiMagYZSqgk8Nc7z6nTfKyYhz5vnaPDnI/rijG2h0WlF4f0C",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "inventory-svc",
+      "password_hash": "Sl1ow4J8nIIoNTTNf+58mWa+WK37/3XRO5xTh5w0CNnNhOqA",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    },
+    {
+      "name": "payment-svc",
+      "password_hash": "9xuMNvYt1hLkMpRcfMvLUEF4Xanb/GwAGgovAof6qNUv7SBj",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": []
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "pedidos"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "pedidos",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "order-svc",
+      "vhost": "pedidos",
+      "configure": "^$",
+      "write": "^pedidos\\.events$",
+      "read": "^order\\.events$"
+    },
+    {
+      "user": "inventory-svc",
+      "vhost": "pedidos",
+      "configure": "^$",
+      "write": "^pedidos\\.events$",
+      "read": "^inventory\\.events$"
+    },
+    {
+      "user": "payment-svc",
+      "vhost": "pedidos",
+      "configure": "^$",
+      "write": "^pedidos\\.events$",
+      "read": "^payment\\.events$"
+    }
+  ],
+  "topic_permissions": [
+    {
+      "user": "order-svc",
+      "vhost": "pedidos",
+      "exchange": "pedidos.events",
+      "write": "^order\\..*$",
+      "read": ".*"
+    },
+    {
+      "user": "inventory-svc",
+      "vhost": "pedidos",
+      "exchange": "pedidos.events",
+      "write": "^stock\\..*$",
+      "read": ".*"
+    },
+    {
+      "user": "payment-svc",
+      "vhost": "pedidos",
+      "exchange": "pedidos.events",
+      "write": "^payment\\..*$",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "pedidos.events",
+      "vhost": "pedidos",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "pedidos.dlx",
+      "vhost": "pedidos",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "order.events",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "pedidos.dlx",
+        "x-dead-letter-routing-key": "order.events.dlq",
+        "x-delivery-limit": 10
+      }
+    },
+    {
+      "name": "order.events.dlq",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "inventory.events",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "pedidos.dlx",
+        "x-dead-letter-routing-key": "inventory.events.dlq",
+        "x-delivery-limit": 10
+      }
+    },
+    {
+      "name": "inventory.events.dlq",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "payment.events",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum",
+        "x-dead-letter-exchange": "pedidos.dlx",
+        "x-dead-letter-routing-key": "payment.events.dlq",
+        "x-delivery-limit": 10
+      }
+    },
+    {
+      "name": "payment.events.dlq",
+      "vhost": "pedidos",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "order.events",
+      "destination_type": "queue",
+      "routing_key": "stock.rejected",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "order.events",
+      "destination_type": "queue",
+      "routing_key": "payment.approved",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "order.events",
+      "destination_type": "queue",
+      "routing_key": "payment.declined",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.dlx",
+      "vhost": "pedidos",
+      "destination": "order.events.dlq",
+      "destination_type": "queue",
+      "routing_key": "order.events.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "inventory.events",
+      "destination_type": "queue",
+      "routing_key": "order.created",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "inventory.events",
+      "destination_type": "queue",
+      "routing_key": "payment.approved",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "inventory.events",
+      "destination_type": "queue",
+      "routing_key": "payment.declined",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.dlx",
+      "vhost": "pedidos",
+      "destination": "inventory.events.dlq",
+      "destination_type": "queue",
+      "routing_key": "inventory.events.dlq",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.events",
+      "vhost": "pedidos",
+      "destination": "payment.events",
+      "destination_type": "queue",
+      "routing_key": "stock.reserved",
+      "arguments": {}
+    },
+    {
+      "source": "pedidos.dlx",
+      "vhost": "pedidos",
+      "destination": "payment.events.dlq",
+      "destination_type": "queue",
+      "routing_key": "payment.events.dlq",
+      "arguments": {}
+    }
+  ]
+}
