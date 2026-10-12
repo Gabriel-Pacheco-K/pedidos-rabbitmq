@@ -1,0 +1,50 @@
+server:
+  port: ${PORT:8081}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/common,classpath:db/migration
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASSWORD}
+    virtual-host: pedidos
+    publisher-confirm-type: simple
+    publisher-returns: true
+
+# Nenhum segredo tem valor padrão: sem as variáveis de ambiente, o serviço não sobe.
+app:
+  messaging:
+    exchange: pedidos.events
+    self: ORDER
+    private-key: ${ORDER_PRIVATE_KEY}
+    public-keys:
+      inventory: ${INVENTORY_PUBLIC_KEY}
+      payment: ${PAYMENT_PUBLIC_KEY}
+    max-message-age: 7d
+    relay-interval: 500 # milissegundos
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:pedidos-auth}
+      audience: pedidos-api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
