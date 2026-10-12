@@ -1,0 +1,11 @@
+target/
+*.class
+*.log
+
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Chaves e senhas geradas por scripts/gerar-chaves.sh
+.env
