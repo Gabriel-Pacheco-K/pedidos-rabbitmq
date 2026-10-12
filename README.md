@@ -10,6 +10,10 @@ Sistema de pedidos com três microsserviços (**pedidos**, **estoque** e **pagam
 
 O foco do projeto é o que costuma dar errado em sistemas distribuídos: **mensagens perdidas, duplicadas, forjadas ou fora de ordem, e vendas acima do estoque**. Cada proteção tem um teste automatizado que a comprova, rodando contra PostgreSQL e RabbitMQ reais.
 
+![Demonstração: pedido confirmado, cancelado com compensação, rejeitado por falta de estoque e entregue mesmo com o RabbitMQ fora do ar](docs/demo.gif)
+
+*Gravado com o sistema rodando de verdade: os três serviços, o RabbitMQ e o PostgreSQL.*
+
 ---
 
 ## 🔄 Como um pedido flui
