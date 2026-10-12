@@ -1,0 +1,87 @@
+# Antes de subir: ./scripts/gerar-chaves.sh (cria o .env com chaves e senhas novas)
+
+x-service: &service
+  restart: unless-stopped
+  read_only: true            # sistema de arquivos só leitura dentro do contêiner
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  depends_on:
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ORDERS_DB_PASSWORD: ${ORDERS_DB_PASSWORD}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      PAYMENTS_DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
+    volumes:
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    volumes:
+      - ./infra/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./infra/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
+    ports:
+      - "127.0.0.1:15672:15672"   # painel de gestão só no localhost
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 20
+
+  order-service:
+    <<: *service
+    build: { context: ., args: { SERVICE: order-service } }
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/orders
+      DB_USER: order_svc
+      DB_PASSWORD: ${ORDERS_DB_PASSWORD}
+      RABBIT_HOST: rabbitmq
+      RABBIT_USER: order-svc
+      RABBIT_PASSWORD: order-dev-only
+      ORDER_PRIVATE_KEY: ${ORDER_PRIVATE_KEY}
+      INVENTORY_PUBLIC_KEY: ${INVENTORY_PUBLIC_KEY}
+      PAYMENT_PUBLIC_KEY: ${PAYMENT_PUBLIC_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+
+  inventory-service:
+    <<: *service
+    build: { context: ., args: { SERVICE: inventory-service } }
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/inventory
+      DB_USER: inventory_svc
+      DB_PASSWORD: ${INVENTORY_DB_PASSWORD}
+      RABBIT_HOST: rabbitmq
+      RABBIT_USER: inventory-svc
+      RABBIT_PASSWORD: inventory-dev-only
+      INVENTORY_PRIVATE_KEY: ${INVENTORY_PRIVATE_KEY}
+      ORDER_PUBLIC_KEY: ${ORDER_PUBLIC_KEY}
+      PAYMENT_PUBLIC_KEY: ${PAYMENT_PUBLIC_KEY}
+
+  payment-service:
+    <<: *service
+    build: { context: ., args: { SERVICE: payment-service } }
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/payments
+      DB_USER: payment_svc
+      DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
+      RABBIT_HOST: rabbitmq
+      RABBIT_USER: payment-svc
+      RABBIT_PASSWORD: payment-dev-only
+      PAYMENT_PRIVATE_KEY: ${PAYMENT_PRIVATE_KEY}
+      INVENTORY_PUBLIC_KEY: ${INVENTORY_PUBLIC_KEY}
+
+volumes:
+  pgdata:
